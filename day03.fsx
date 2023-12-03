@@ -118,5 +118,3 @@ let addGearPart gear part gears =
         None
 )
 |> Seq.sum
-     
-    
