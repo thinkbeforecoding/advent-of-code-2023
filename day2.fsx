@@ -18,7 +18,7 @@ let rangeSpan (s: ReadOnlySpan<'t>, r: Range) =
 
 // provide it as an extension method on ReadOnlySpan
 type ReadOnlySpan<'t> with
-    member this.Range(r: Range) = rangeSpan(this, r)
+    member this.Item with get(r: Range) = rangeSpan(this, r)
     
 
 /// does an Split on the input ReadOnlySpan, and returns a slice containing only found ranges
@@ -45,7 +45,7 @@ let parseColor (s: ReadOnlySpan<char>) =
 let parseCube (s: ReadOnlySpan<char>) =
     let parts = split(s, 2, ' ')
     if parts.Length = 2 then
-        parseColor (s.Range parts[1]), Int32.Parse (s.Range parts[0])
+        parseColor (s[parts[1]]), Int32.Parse (s[parts[0]])
     else
         failwith "Invalid cube"
 
@@ -55,7 +55,7 @@ let parseSubset (s: ReadOnlySpan<char>) =
     let cubes = split(s, 20, ',')
     let mutable map = Map.empty
     for cube in cubes  do
-        let color, count = parseCube(s.Range cube)
+        let color, count = parseCube(s[cube])
         map <- Map.add color count map
     map
 
@@ -65,7 +65,7 @@ let parseSubsets (s: ReadOnlySpan<char>) =
     let  a = Array.zeroCreate subsets.Length
     let mutable i = 0
     for subset in subsets do
-        a[i] <- parseSubset(s.Range subset)
+        a[i] <- parseSubset(s[subset])
         i <- i+1
     a
 
@@ -74,11 +74,11 @@ let parseGame (s: string) =
     let span = s.AsSpan()
     let parts = split(span, 2, ':')
     if parts.Length = 2 then
-        let idSpan = span.Range parts[0]
+        let idSpan = span[parts[0]]
 
         let idParts = split(idSpan, 2, ' ')
-        let gameId = Int32.Parse (idSpan.Range idParts[1])
-        let subsets = parseSubsets (span.Range(parts[1]))
+        let gameId = Int32.Parse (idSpan[idParts[1]])
+        let subsets = parseSubsets (span[parts[1]])
         gameId, subsets
     else
         failwith "Invalid game"
