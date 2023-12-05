@@ -64,7 +64,6 @@ numbers
     else
         None                                         // not a part
      )
-|> Seq.toList
 |> Seq.sum
      
 
