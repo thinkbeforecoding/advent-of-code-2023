@@ -89,7 +89,7 @@ module Part2 =
     /// compute the intersection between two ranges
     let intersection (sx,ex) (sy,ey) =  
         let i = max sx sy, min ex ey
-        if isEmpty i then empty else i
+        if isEmpty i then empty else i  // not strictly
 
     /// returns the part of the second range that is before first range
     /// if second range starts after the first, the result is empty

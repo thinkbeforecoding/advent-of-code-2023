@@ -6,7 +6,7 @@ let input = IO.File.ReadAllLines "./input/day04.txt"
 let parse (line: string) =
     match line.Split(':') with
     | [| gamestr; nums|] ->
-        let id = int (gamestr.Split(' ')[1])
+        let id = int (gamestr.Split(' ', StringSplitOptions.RemoveEmptyEntries)[1])
         match nums.Split('|') with
         | [| win; actual |] ->
             let wins = 
@@ -33,18 +33,21 @@ input |> Array.map parse |> Array.sumBy score
 
 
 
-(Map.ofList [1,1], Array.map parse input)
+(Map.ofList [for i in 1 .. input.Length -> i,1L], Array.map parse input)
 ||> Array.fold (fun map (id,(win, actual)) -> 
         let count = map[id]
         let winCards = Set.intersect win actual |> Set.count 
         if winCards > 0 then
-            (map,[ for i in id+1 .. id+winCards -> i])
-            ||> List.fold (fun m  k -> 
-                match Map.tryFind k m with
-                | Some v -> Map.add k (v+1) m
-                | None -> Map.add k 1 m
-                ) 
+            let newCards = 
+                (map,[ for i in id+1 .. id+winCards -> i])
+                ||> List.fold (fun m  k -> 
+                    match Map.tryFind k m with
+                    | Some v -> Map.add k (v+count) m
+                    | None -> Map.add k count m
+                    ) 
+            newCards
         else
             map
 
         )
+|> Map.values |> Seq.sum 

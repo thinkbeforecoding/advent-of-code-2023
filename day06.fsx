@@ -25,9 +25,18 @@ let high  (totalTime: double) (record: double) =
     (totalTime + sqrt(totalTime * totalTime - 4. * record)) / 2.
 
 let min (totalTime: int64) (record: int64) =
-    let mutable m = low (double totalTime) (double record)
-    while distance m <= record do
+    let mutable m = int64 (low (double totalTime) (double record))
+    while distance m totalTime <= record do
         m <- m+1L
     m
-low 71530. 940200.
-high 71530. 940200. 
+
+let max (totalTime: int64) (record: int64) =
+    let mutable m = int64 (high (double totalTime) (double record))
+    while distance m totalTime <= record do
+        m <- m-1L
+    m
+
+let range totalTime record =
+    max totalTime record - min totalTime record + 1L
+
+range times2 distances2
