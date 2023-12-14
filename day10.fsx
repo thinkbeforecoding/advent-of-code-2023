@@ -1,17 +1,17 @@
 open System
 
-// let map = IO.File.ReadAllText("./input/day10.txt")
-let map =
-    """FF7FSF7F7F7F7F7F---7
-L|LJ||||||||||||F--J
-FL-7LJLJ||||||LJL-77
-F--JF--7||LJLJIF7FJ-
-L---JF-JLJIIIIFJLJJ7
-|F|F-JF---7IIIL7L|7|
-|FFJF7L7F-JF7IIL---7
-7-L-JL7||F7|L7F-7F7|
-L.L7LFJ|||||FJL7||LJ
-L7JLJL-JLJLJL--JLJ.L""".Replace("\n", Environment.NewLine)
+let map = IO.File.ReadAllText("./input/day10.txt")
+// let map =
+//     """FF7FSF7F7F7F7F7F---7
+// L|LJ||||||||||||F--J
+// FL-7LJLJ||||||LJL-77
+// F--JF--7||LJLJIF7FJ-
+// L---JF-JLJIIIIFJLJJ7
+// |F|F-JF---7IIIL7L|7|
+// |FFJF7L7F-JF7IIL---7
+// 7-L-JL7||F7|L7F-7F7|
+// L.L7LFJ|||||FJL7||LJ
+// L7JLJL-JLJLJL--JLJ.L""".Replace("\n", Environment.NewLine)
 let width = map.IndexOf(Environment.NewLine)
 let lineWidth = width + Environment.NewLine.Length
 let height = (map.Length + Environment.NewLine.Length) / lineWidth
@@ -55,8 +55,8 @@ let rec follow s dir len =
     | 'S',_ -> (len+1) /2
     | _ -> -1
 
-// follow s Up 0
-follow s Left 0
+follow s Up 0
+// follow s Left 0
 // follow s Right 0
 // follow s Down 0
 
@@ -83,7 +83,11 @@ let rec draw s dir : bool  =
     | 'L', _ -> plot s 'L'
     | '7', _ -> plot s '7'
     | 'J', _ -> plot s 'J'
-    | 'S', _ -> plot s 'S'
+    | 'S', Left -> plot s '<'
+    | 'S', Right -> plot s '>'
+    | 'S', Up -> plot s '<'
+    | 'S', Down -> plot s '>'
+    
     | _ -> ()
     let n =
         match dir with
@@ -108,15 +112,16 @@ let rec draw s dir : bool  =
     | 'S',_ -> true
     | _ -> false
 
-// draw s Up 
-draw s Left
+draw s Up 
+// draw s Left
 
 printPath()
 
 let rec countLine (x,y) inside count =
     if x < width then
         match peekPath (x,y)with
-        | '|' -> countLine (x+1,y) (not inside) count
+        | '>' -> countLine (x+1,y) true count
+        | '<' -> countLine (x+1,y) false count
         | '-' -> countLine (x+1,y) inside count
         | _ ->
             if inside then
