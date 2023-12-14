@@ -3,30 +3,16 @@ open System
 let input = IO.File.ReadAllText("./input/day13.txt")
 let patterns = input.Replace("\r","").Split("\n\n")
 
-//let pattern = patterns[0]
+// Part 1
+// this one was not very difficult
 
+// Parse the patterns keeping plain strings 
 type Pattern =
     { Map: string
       Width: int
       LineWidth: int
       Height: int}
 
-// let pattern =
-//     """#.##..##.
-// ..#.##.#.
-// ##......#
-// ##......#
-// ..#.##.#.
-// ..##..##.
-// #.#.##.#."""
-// let pattern =
-//     """#...##..#
-// #....#..#
-// ..##..###
-// #####.##.
-// #####.##.
-// ..##..###
-// #....#..#"""
 let parse (p: string ) =
     let w = p.IndexOf('\n')
     let lw = w + 1
@@ -37,7 +23,8 @@ let parse (p: string ) =
       Height = h
     }
 
-
+// for vertical mirror, we transpose the map
+// checking horizontal is faster and easier
 let transpose p =
     let b = Text.StringBuilder()
     for c in 0 .. p.Width-1 do
@@ -49,74 +36,95 @@ let transpose p =
       LineWidth = p.Height + 1
       Height = p.Width }
 
-
+// check whether to lines are equal
 let linesEqual p a b =
     let x = p.Map.AsSpan().Slice(a*p.LineWidth, p.Width)
     let y = p.Map.AsSpan().Slice(b*p.LineWidth,p.Width)
     x.SequenceEqual(y)
 
-let rec checkEqual p a b =
+// check that all lines between a and b are reflected horizonataly
+let rec checkMirror p a b =
     if linesEqual p a b then
         if a+1 = b then
             b
         else
-            checkEqual p (a+1) (b-1)
+            checkMirror p (a+1) (b-1)
     else
         0
 
-let rec findEquals p a b =
+// but before this we don't even know where are similar lines
+// try to find equal lines
+let rec findMirror p a b =
     if a >= p.Height-1 then
+        // we tested all possibilites, there is no horizontal mirror here
         0
     elif b >= p.Height then
-        findEquals p (a+1) (a+2)
+        // we tried all b's, try next 'a'
+        findMirror p (a+1) (a+2)
     else
+        // check whether lines are equal
         if linesEqual p a b then
-            let middle = (a+b)/2+1
-            let above = middle
-            let below = p.Height-middle
-            let maxh = min above below
-            let top = middle - maxh
-            let bottom = middle + maxh - 1
+            // lines are equal, the mirror could be just in the middle
+            let middle = (a+b)/2+1 // the +1 is to round up
+            let above = middle      // the number of lines above the potential mirror
+            let below = p.Height-middle // the number of lines below the potential mirror
+            let maxh = min above below  // this would be the max number of lines on both sides
+            let top = middle - maxh     // this is the top row to check
+            let bottom = middle + maxh - 1  // this is the bottom row to check
 
-            match checkEqual p top bottom with
-            | 0 -> findEquals p a (b+1)
-            | n -> n
+            // check that all lines between match
+            match checkMirror p top bottom with 
+            | 0 -> findMirror p a (b+1) // nope, try again
+            | n -> n    // yes, we found the mirror
         else
-            findEquals p a (b+1)
+            // not equal try next b
+            findMirror p a (b+1)
 
+// Compute the score for a pattern
 let score p =
-    match findEquals p 0 1 with
+    // try to find an horizontal mirror
+    match findMirror p 0 1 with
     | 0 -> 
-        findEquals (transpose p) 0 1
-    | n -> 100*n
+        // not found, transpose and look for mirror
+        findMirror (transpose p) 0 1
+    | n -> 100*n // found an horizontal mirror (score * 100)
 
-patterns |> Array.sumBy (
-        fun p ->
-            try
-                p |> parse |> score
-            with
-            | ex ->
-                printfn "%A\n" p
-                0
-            )
+patterns |> Array.sumBy (parse >> score)
 
-let rec findSpec' (a: char ReadOnlySpan) (b: char ReadOnlySpan) i result =
+
+// Part 2
+//
+
+// this function look for a smudge, returns its position of -1
+// result is initialized to -1
+let rec findSmudge' (a: char ReadOnlySpan) (b: char ReadOnlySpan) i result =
     if i < a.Length && i < b.Length then
+        // not done yet, compare chars
         if a[i] = b[i] then
-            findSpec' a b (i+1) result
+            // chars are the same, compare next
+            findSmudge' a b (i+1) result
         elif result = -1 then
-            findSpec' a b (i+1) i
+            // chars were different, and it's the first time
+            // we may have found the smudge, continue to check
+            // there is no other difference
+            findSmudge' a b (i+1) i
         else
+            // oh, this is the second difference, so it was not the smudge
             -1
     else
+        // we reached the end, result if the position of the smudge if we found only one
+        // or -1 if both input were equal
         result
-let speckPos p  a b =
+
+// return smudgePos on lines a and b of pattern p
+let smudgePos p  a b =
     let span = p.Map.AsSpan()
     let aspan = span.Slice(a*p.LineWidth, p.Width)
     let bspan = span.Slice(b*p.LineWidth, p.Width)
-    findSpec' aspan bspan 0 -1
+    findSmudge' aspan bspan 0 -1
 
-let applySpec p x y =
+// modify the map to clean the smudge
+let applySmudge p x y =
     let a = Array.zeroCreate p.Map.Length
     p.Map.AsSpan().CopyTo(a.AsSpan())
     let index = y * p.LineWidth + x
@@ -127,16 +135,20 @@ let applySpec p x y =
     { p with
         Map = String (Span.op_Implicit a) }
 
-let rec findSpec p a b =
+// look for the mirror including the smudge
+// this is similar to findMirror, with a few commented differences
+let rec findMirrorSmudge p a b =
     if a >= p.Height-1 then
         0
     elif b >= p.Height then
-        findSpec p (a+1) (a+2)
+        findMirrorSmudge p (a+1) (a+2)
     else
-        match speckPos p a b with
-        | -1 -> findSpec p a (b+1)
+        // compare lines finding potential smudge
+        match smudgePos p a b with
+        | -1 -> findMirrorSmudge p a (b+1)
         | n ->
-
+            // those line are identical up to the smudge
+            // compute the position of the mirror
             let middle = (a+b)/2+1
             let above = middle
             let below = p.Height-middle
@@ -144,13 +156,18 @@ let rec findSpec p a b =
             let top = middle - maxh
             let bottom = middle + maxh - 1
 
-            match checkEqual p top bottom with
-            | 0 -> findEquals p a (b+1)
+            // clean the smudge and check the mirror
+            let p2 = applySmudge p n a
+            match checkMirror p2 top bottom with
+            | 0 -> findMirrorSmudge p a (b+1)
             | n -> n
-        else
-            findEquals p a (b+1)
+                
+// This is similar to par1, but including smudge
+let scoreSmudge p =
+    match findMirrorSmudge p 0 1 with
+    | 0 -> 
+        findMirrorSmudge (transpose p) 0 1
+    | n -> 100*n
 
-
-
-
+patterns |> Seq.sumBy (parse >> scoreSmudge)
 
