@@ -45,4 +45,17 @@ run2 0 (map.Keys |> Seq.filter (fun l -> l[2]='A') |> Seq.toList)
 
 let ghosts = map.Keys |> Seq.filter (fun l -> l[2]='A') |> Seq.toList
 
-ghosts |> List.map (cycleLen 0)
+
+let primeFactors x = 
+    let rec fact x div list = 
+        if x % div = 0 then
+            fact (x/div) div (div::list)
+        elif div > int(sqrt (float x)) then
+            if x > 1 then x::list
+            else list
+        else
+            fact x (div+1) list
+    fact x 2 []
+
+ghosts |> List.map (cycleLen 0) |> List.map (primeFactors >> set)
+|> List.fold Set.union Set.empty |> Set.map int64 |> Set.fold ( * ) 1L
